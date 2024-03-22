@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ffi';
 import 'dart:math';
 import 'dart:ui';
+import 'package:almufeedattendence/Constants.dart';
 import 'package:almufeedattendence/dashboard/NewDashboard.dart';
 import 'package:almufeedattendence/login/signIn.dart';
 import 'package:almufeedattendence/model/location/SendLocationResponseModel.dart';
@@ -20,7 +22,7 @@ import '../model/profile/viewprofile.dart';
 import '../myattendence/MyAttendence.dart';
 import '../profile/ViewProfile.dart';
 
-  onStart(ServiceInstance service) async {
+onStart(ServiceInstance service) async {
     DartPluginRegistrant.ensureInitialized();
     if (service is AndroidServiceInstance) {
       service.on('setAsForeground').listen((event) {
@@ -34,7 +36,7 @@ import '../profile/ViewProfile.dart';
       service.stopSelf();
     });
 
-    Timer.periodic(const Duration(seconds: 900000), (timer) async {
+    Timer.periodic(const Duration(seconds: 2), (timer) async {
       if (service is AndroidServiceInstance) {
         service.setForegroundNotificationInfo(
           title: "Al Mufeed Group - HR",
@@ -47,47 +49,39 @@ import '../profile/ViewProfile.dart';
           "current_date": DateTime.now().toIso8601String(),
         },
       );
+
+      print('not matching...' + Constants.sms);
+
+      final GlobalKey<_DashboardExampleState> dashboardKey = GlobalKey<_DashboardExampleState>();
+      dashboardKey.currentState?.getCurrentLocation();
+
     });
   }
 
-class Dashboard extends StatelessWidget {
+class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: DashboardExample(),
-    );
-  }
+  State<Dashboard> createState() => _DashboardExampleState();
 }
 
-class DashboardExample extends StatefulWidget {
-  const DashboardExample({super.key});
-
-  @override
-  State<DashboardExample> createState() =>
-      _DashboardExampleState();
-}
-
-class _DashboardExampleState extends State<DashboardExample> with TickerProviderStateMixin {
+class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMixin {
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
   String currentDate = DateFormat.yMMMMd('en_US').format(DateTime.now());
   String currentTime = DateFormat.jm().format(DateTime.now());
   late GoogleMapController mapController;
   late Marker currentLocaMarker;
-  double damaclat = 25.09554209900229;
-  double damaclong = 55.17285329480057;
   late LocationData currentLocation;
   Location location = Location();
   late StreamSubscription<LocationData> _locationSubscription;
   final Set<Marker> markers = new Set();
   Set<Circle> circles = new Set();
-  String checkedInText = "Punch-In";
+  String checkedInText = "";
   String checkedInTextDate = "Punch-In";
   bool showText = false;
   bool isLoading = false;
   bool showNotification = false;
-  bool showNotificationoNEtime = false;
+  bool punchflag = false;
   String empId = "";
   String userName = "";
   String userMobile = "-";
@@ -107,9 +101,9 @@ class _DashboardExampleState extends State<DashboardExample> with TickerProvider
     var initializationSettingsIOS = IOSInitializationSettings(onDidReceiveLocalNotification: null);
     var initializationSettings = InitializationSettings(android: initializationSettingsAndroid, iOS: initializationSettingsIOS);
     flutterLocalNotificationsPlugin.initialize(initializationSettings, onSelectNotification: null);
-    getCurrentLocation();
     initializeApp();
     getToken();
+    getCurrentLocation();
   }
 
   initializeApp() async {
@@ -139,8 +133,18 @@ class _DashboardExampleState extends State<DashboardExample> with TickerProvider
     prefs = await SharedPreferences.getInstance();
     setState(() {
       isLoading = true;
+      latitude = prefs.getStringList('locationLat')!;
+      longitude = prefs.getStringList('locationLong')!;
+      buildingName = prefs.getStringList('locationName')!;
       empId = prefs.getString('username').toString();
       token = prefs.getString('token').toString();
+      punchflag = prefs.getBool('punchflag')!;
+      print("punch " + punchflag.toString());
+      if(punchflag == true){
+        checkedInText = "Punch-Out";
+      }else{
+        checkedInText = "Punch-In";
+      }
       Profile(empId,token);
     });
   }
@@ -230,7 +234,7 @@ class _DashboardExampleState extends State<DashboardExample> with TickerProvider
 
   void getCurrentLocation() async{
     location = Location();
-    if(location.isBackgroundModeEnabled() == false){
+    if(location.isBackgroundModeEnabled() == true){
       location.enableBackgroundMode(enable: true);
     }
 
@@ -246,59 +250,35 @@ class _DashboardExampleState extends State<DashboardExample> with TickerProvider
       });
     });
 
-    await location.changeSettings(accuracy: LocationAccuracy.high, interval: 900000, distanceFilter: 0);
+    //await location.changeSettings(accuracy: LocationAccuracy.high, interval: 5000, distanceFilter: 0);
       location.onLocationChanged.listen((newLoc) {
-        latitude = prefs.getStringList('locationLat')!;
-        longitude = prefs.getStringList('locationLong')!;
-        buildingName = prefs.getStringList('locationName')!;
 
         double distanceBetween = 0.0;
-        double latString = 0.0;
-        double longString = 0.0;
+        for (int i = 0; i < latitude.length; i++) {
+        double latString = double.parse(latitude[i]);
+        double longString = double.parse(longitude[i]);
 
-      for (int i = 0; i < latitude.length; i++) {
-        var latString1 = double.parse(latitude[i]);
-        var longString1 = double.parse(longitude[i]);
-
-        String inString = latString1.toStringAsFixed(3);
-        String lonString = longString1.toStringAsFixed(3);
+        String inString = latString.toStringAsFixed(3);
         String newString = newLoc.latitude!.toStringAsFixed(3);
-        String newStringLong = newLoc.longitude!.toStringAsFixed(3);
-
-        latString = double.parse(inString);
-        longString = double.parse(lonString);
-        double newlo = double.parse(newString);
-        double newlongg = double.parse(newStringLong);
-
-        if(newlo == latString){
-          print('user reached to the destination...' + newlo.toString() +  " lon " + latString.toString());
-          showNotification = true;
-          buildName = buildingName[i];
-        }else{
-          showNotification = false;
-        }
 
         distanceBetween = haversineDistance(
             LatLng(latString, longString), LatLng(
-            newlo, newlongg));
-      }
+            newLoc.latitude!, newLoc.longitude!));
 
-      if (distanceBetween < 200) {
-        if(showNotification){
-          if (checkedInText == "Punch-In") {
-            sendLocationToServer(empId, buildName, "Y",buildName);
-            scheduleNotification(
-                "Al Mufeed - HR", "You are at office - Punch In");
+        if (distanceBetween < 200) {
+          if(inString == newString){
+            buildName = buildingName[i];
+            if(checkedInText == "Punch-In"){
+              sendLocationToServer(empId, buildName, "Y",buildName);
+              scheduleNotification("Al Mufeed - HR", "You are at office - Punch In");
+            }
           }
-        }
-      } else {
-        if(!showNotification){
-          if (checkedInText == "Punch-Out") {
-            sendLocationToServer(empId, buildName, "",buildName);
+        } else {
+           /* if (checkedInText == "Punch-Out") {
+              sendLocationToServer(empId, buildName, "",buildName);
+              scheduleNotification("Al Mufeed - HR", "You are out of office - Punch out");
+            }*/
           }
-          scheduleNotification(
-              "Al Mufeed - HR", "You are out of office - Punch out");
-        }
       }
       });
   }
@@ -306,18 +286,20 @@ class _DashboardExampleState extends State<DashboardExample> with TickerProvider
   Future<void> scheduleNotification(String title, String subtitle) async {
     print("scheduling one with $title and $subtitle");
     var rng = new Random();
-    var androidPlatformChannelSpecifics = AndroidNotificationDetails(
-        'your channel id', 'your channel name',
-        importance: Importance.high,
-        priority: Priority.high,
-        ticker: 'ticker');
-    var iOSPlatformChannelSpecifics = IOSNotificationDetails();
-    var platformChannelSpecifics = NotificationDetails(
-        android: androidPlatformChannelSpecifics,
-        iOS: iOSPlatformChannelSpecifics);
-    await flutterLocalNotificationsPlugin.show(
-        rng.nextInt(100000), title, subtitle, platformChannelSpecifics,
-        payload: 'item x');
+    if(punchflag == true){
+      var androidPlatformChannelSpecifics = AndroidNotificationDetails(
+          'your channel id', 'your channel name',
+          importance: Importance.high,
+          priority: Priority.high,
+          ticker: 'ticker');
+      var iOSPlatformChannelSpecifics = IOSNotificationDetails();
+      var platformChannelSpecifics = NotificationDetails(
+          android: androidPlatformChannelSpecifics,
+          iOS: iOSPlatformChannelSpecifics);
+      await flutterLocalNotificationsPlugin.show(
+          0, title, subtitle, platformChannelSpecifics,
+          payload: 'item x');
+    }
   }
 
   dynamic haversineDistance(LatLng player1, LatLng player2) {
@@ -339,10 +321,7 @@ class _DashboardExampleState extends State<DashboardExample> with TickerProvider
             sin(deltaLambda / 2);
 
     var c = 2 * atan2(sqrt(a), sqrt(1 - a));
-
     var d = R * c; // in metres
-
-
     return d;
   }
 
@@ -534,23 +513,20 @@ class _DashboardExampleState extends State<DashboardExample> with TickerProvider
 
                       String inString = latString1.toStringAsFixed(3);
                       String newString = currentLocation.latitude!.toStringAsFixed(3);
-
-                      double latString = double.parse(inString);
-                      double newlo = double.parse(newString);
-
-                      if(newlo == latString){
-                        print('user reached to the destination...' + newlo.toString() +  " lon " + latString.toString());
+                      print('punchin time...' + inString.toString() +  " lon " + newString.toString() + " buidlingname " + buildingName[i]);
+                      if(inString == newString){
                         buildName = buildingName[i];
                       }
                     }
 
-                      if(checkedInText == "Punch-In"){
+                    if(checkedInText == "Punch-In"){
+                        prefs.setBool('punchflag', true);
                         sendLocationToServer(empId, buildName, "Y",buildName);
                         scheduleNotification("Al Mufeed - HR", "You are at office - Punch In");
 
                       }else if(checkedInText == "Punch-Out"){
                         sendLocationToServer(empId, buildName, "",buildName);
-                        scheduleNotification("Al Mufeed - HR", "You are at office - Punch In");
+                        scheduleNotification("Al Mufeed - HR", "You are out of office - Punch In");
                       }
                   },
                   child: Text(
@@ -770,13 +746,13 @@ class _DashboardExampleState extends State<DashboardExample> with TickerProvider
       });
       SendLocationResponseModel data = SendLocationResponseModel.fromJson(response.data);
       if(data.result == true){
-        if(checkedInText == "Punch-In"){
+        if(status == "Y" && checkedInText == "Punch-In"){
           showText = true;
           _checkIn(context);
           checkedInText = "Punch-Out";
           checkedInTextDate = 'Punched In ' + name + '\n' + currentDate + " " + currentTime;
           changeName(checkedInText,checkedInTextDate);
-        }else if(checkedInText == "Punch-Out"){
+        }else if(status == "" && checkedInText == "Punch-Out"){
           showText = true;
           _checkIn(context);
           checkedInTextDate = 'Punched Out ' + name + '\n' + currentDate + " " + currentTime;

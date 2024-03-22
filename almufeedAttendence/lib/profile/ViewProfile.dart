@@ -274,7 +274,7 @@ class _ViewProfileState extends State<ViewProfileExample> with TickerProviderSta
       userEmirateId = data.emiratedid;
       userPassport = data.passport;
       userMedical = data.medical;
-      userPhoto = data.photo;
+     // userPhoto = data.photo;
     });
   }
 

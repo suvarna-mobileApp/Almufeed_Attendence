@@ -99,7 +99,7 @@ class _MyAttendenceExampleState extends State<MyAttendenceExample> with TickerPr
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.filter_alt_rounded),
+            icon: Icon(Icons.calendar_month),
             color: ColorConstants.kPrimaryColor,
             onPressed: () {
               _selectDate(context);

@@ -319,6 +319,7 @@ class _signInExampleExampleState extends State<signInExample> with TickerProvide
         prefs = await SharedPreferences.getInstance();
         await prefs.setString('username', userName);
         await prefs.setBool('firstLogin', true);
+        await prefs.setBool('punchflag', false);
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -380,8 +381,9 @@ class _signInExampleExampleState extends State<signInExample> with TickerProvide
           latitude.add(locLat);
           longitude.add(locLong);
           buildingName.add(buildName);
+          //print('user reached to the destination...' + data.checkInList![i].name.toString() + " datalist " + data.checkInList!.length.toString());
         }
-
+       // print('user reached to the destination...' + buildingName.length.toString() + " datalist " + data.checkInList!.length.toString());
         await prefs.setStringList('locationLat', latitude);
         await prefs.setStringList('locationLong', longitude);
         await prefs.setStringList('locationName', buildingName);
