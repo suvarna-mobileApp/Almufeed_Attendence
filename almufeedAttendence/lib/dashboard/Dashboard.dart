@@ -15,12 +15,15 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:location/location.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Colours.dart';
 import '../model/login/AccessToken.dart';
 import '../model/profile/viewprofile.dart';
 import '../myattendence/MyAttendence.dart';
 import '../profile/ViewProfile.dart';
+
+final GlobalKey<_DashboardExampleState> dashboardKey = GlobalKey<_DashboardExampleState>();
 
 onStart(ServiceInstance service) async {
     DartPluginRegistrant.ensureInitialized();
@@ -50,9 +53,8 @@ onStart(ServiceInstance service) async {
         },
       );
 
-      print('not matching...' + Constants.sms);
+      //print('not matching...' + Constants.sms);
 
-      final GlobalKey<_DashboardExampleState> dashboardKey = GlobalKey<_DashboardExampleState>();
       dashboardKey.currentState?.getCurrentLocation();
 
     });
@@ -76,8 +78,8 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
   late StreamSubscription<LocationData> _locationSubscription;
   final Set<Marker> markers = new Set();
   Set<Circle> circles = new Set();
-  String checkedInText = "";
-  String checkedInTextDate = "Punch-In";
+  String checkedInText = "Punch-In";
+  String checkedInTextDate = "";
   bool showText = false;
   bool isLoading = false;
   bool showNotification = false;
@@ -139,9 +141,10 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
       empId = prefs.getString('username').toString();
       token = prefs.getString('token').toString();
       punchflag = prefs.getBool('punchflag')!;
-      print("punch " + punchflag.toString());
+
       if(punchflag == true){
         checkedInText = "Punch-Out";
+        showText = true;
       }else{
         checkedInText = "Punch-In";
       }
@@ -150,42 +153,47 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
   }
 
   Profile(String empId,String token) async {
-    var headers = {
-      'Content-Type': 'application/json',
-      'Authorization': token
-    };
-    var data = json.encode({
-      "_empId": empId
-    });
-    var dio = Dio();
-    var response = await dio.request(
-      'https://iye-live.operations.dynamics.com/api/services/AHSMobileServices/AHSMobileService/getProfile',
-      options: Options(
-        method: 'POST',
-        headers: headers,
-      ),
-      data: data,
-    );
-
-    if (response.statusCode == 200) {
-      setState(() {
-        isLoading = false;
+    try{
+      var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      };
+      var data = json.encode({
+        "_empId": empId
       });
-      viewprofile data = viewprofile.fromJson(response.data);
-      userName = data.Name;
-      userMobile = data.mobilenumber;
-      userPhoto = data.photo;
-    } else if(response.statusCode == 401){
+      var dio = Dio();
+      var response = await dio.request(
+        'https://iye-live.operations.dynamics.com/api/services/AHSMobileServices/AHSMobileService/getProfile',
+        options: Options(
+          method: 'POST',
+          headers: headers,
+        ),
+        data: data,
+      );
 
-    }else {
-      setState(() {
-        isLoading = false;
-      });
-      print(response.statusMessage);
+      if (response.statusCode == 200) {
+        setState(() {
+          isLoading = false;
+        });
+        viewprofile data = viewprofile.fromJson(response.data);
+        userName = data.Name;
+        userMobile = data.mobilenumber;
+        userPhoto = data.photo;
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        print(response.statusMessage);
+      }
+    } on DioError catch(e) {
+      if (e.response!.statusCode == 401) {
+        Autorization();
+      }
     }
   }
 
-  Autorization(String userName, String password) async {
+
+  Autorization() async {
     var headers = {
       'Content-Type': 'application/x-www-form-urlencoded'
     };
@@ -233,8 +241,22 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
   }
 
   void getCurrentLocation() async{
+    if (!await Permission.location.request().isGranted) {
+      //return false;
+    }
+
     location = Location();
-    if(location.isBackgroundModeEnabled() == true){
+    bool _serviceEnabled = await location.serviceEnabled();
+    if (!_serviceEnabled) {
+      _serviceEnabled = await location.requestService();
+      if (!_serviceEnabled) {
+        // return false;
+      }
+    }
+
+    final LocationData _locationData = await location.getLocation();
+
+    if(location.isBackgroundModeEnabled() == false){
       location.enableBackgroundMode(enable: true);
     }
 
@@ -250,7 +272,7 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
       });
     });
 
-    //await location.changeSettings(accuracy: LocationAccuracy.high, interval: 5000, distanceFilter: 0);
+      await location.changeSettings(accuracy: LocationAccuracy.high, interval: 5000, distanceFilter: 0);
       location.onLocationChanged.listen((newLoc) {
 
         double distanceBetween = 0.0;
@@ -266,15 +288,19 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
             newLoc.latitude!, newLoc.longitude!));
 
         if (distanceBetween < 200) {
-          if(inString == newString){
-            buildName = buildingName[i];
-            if(checkedInText == "Punch-In"){
-              sendLocationToServer(empId, buildName, "Y",buildName);
-              scheduleNotification("Al Mufeed - HR", "You are at office - Punch In");
+          if(punchflag == false){
+            if(inString == newString){
+              buildName = buildingName[i];
+              if(checkedInText == "Punch-In"){
+                prefs.setBool('punchflag', true);
+                sendLocationToServer(empId, buildName, "Y",buildName);
+                scheduleNotification("Al Mufeed - HR", "You are at office - Punch In");
+              }
             }
           }
         } else {
-           /* if (checkedInText == "Punch-Out") {
+          prefs.setBool('punchflag', false);
+            /*if (checkedInText == "Punch-Out") {
               sendLocationToServer(empId, buildName, "",buildName);
               scheduleNotification("Al Mufeed - HR", "You are out of office - Punch out");
             }*/
@@ -286,7 +312,6 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
   Future<void> scheduleNotification(String title, String subtitle) async {
     print("scheduling one with $title and $subtitle");
     var rng = new Random();
-    if(punchflag == true){
       var androidPlatformChannelSpecifics = AndroidNotificationDetails(
           'your channel id', 'your channel name',
           importance: Importance.high,
@@ -299,7 +324,6 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
       await flutterLocalNotificationsPlugin.show(
           0, title, subtitle, platformChannelSpecifics,
           payload: 'item x');
-    }
   }
 
   dynamic haversineDistance(LatLng player1, LatLng player2) {
@@ -343,6 +367,7 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
     await prefs.remove('username');
     await prefs.remove('firstLogin');
     await prefs.remove("token");
+    await prefs.remove("punchflag");
     setState(() {
       empId = '';
       token = "";
@@ -525,8 +550,9 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
                         scheduleNotification("Al Mufeed - HR", "You are at office - Punch In");
 
                       }else if(checkedInText == "Punch-Out"){
+                        prefs.setBool('punchflag', false);
                         sendLocationToServer(empId, buildName, "",buildName);
-                        scheduleNotification("Al Mufeed - HR", "You are out of office - Punch In");
+                        scheduleNotification("Al Mufeed - HR", "You are out of office - Punch Out");
                       }
                   },
                   child: Text(
