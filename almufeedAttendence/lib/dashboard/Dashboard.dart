@@ -23,7 +23,7 @@ import '../model/profile/viewprofile.dart';
 import '../myattendence/MyAttendence.dart';
 import '../profile/ViewProfile.dart';
 
-final GlobalKey<_DashboardExampleState> dashboardKey = GlobalKey<_DashboardExampleState>();
+/*final GlobalKey<_DashboardExampleState> dashboardKey = GlobalKey<_DashboardExampleState>();
 
 onStart(ServiceInstance service) async {
     DartPluginRegistrant.ensureInitialized();
@@ -58,7 +58,7 @@ onStart(ServiceInstance service) async {
       dashboardKey.currentState?.getCurrentLocation();
 
     });
-  }
+  }*/
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -103,12 +103,12 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
     var initializationSettingsIOS = IOSInitializationSettings(onDidReceiveLocalNotification: null);
     var initializationSettings = InitializationSettings(android: initializationSettingsAndroid, iOS: initializationSettingsIOS);
     flutterLocalNotificationsPlugin.initialize(initializationSettings, onSelectNotification: null);
-    initializeApp();
+   // initializeApp();
     getToken();
     getCurrentLocation();
   }
 
-  initializeApp() async {
+/*  initializeApp() async {
     final service = FlutterBackgroundService();
 
     await service.configure(
@@ -129,7 +129,7 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
 
   Future<bool> onIosBackground(ServiceInstance serviceInstance) async {
     return true;
-  }
+  }*/
 
   void getToken() async {
     prefs = await SharedPreferences.getInstance();
@@ -299,7 +299,7 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
             }
           }
         } else {
-          prefs.setBool('punchflag', false);
+         // prefs.setBool('punchflag', false);
             /*if (checkedInText == "Punch-Out") {
               sendLocationToServer(empId, buildName, "",buildName);
               scheduleNotification("Al Mufeed - HR", "You are out of office - Punch out");
