@@ -392,8 +392,7 @@ class _DashboardExampleState extends State<NewDashboardExample> with TickerProvi
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    elevation: 4,
-                    primary: ColorConstants.kPrimaryColor,
+                    elevation: 4, backgroundColor: ColorConstants.kPrimaryColor,
                     padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(100),

@@ -287,6 +287,7 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
             LatLng(latString, longString), LatLng(
             newLoc.latitude!, newLoc.longitude!));
 
+
         if (distanceBetween < 200) {
           if(punchflag == false){
             if(inString == newString){
@@ -299,11 +300,13 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
             }
           }
         } else {
-         // prefs.setBool('punchflag', false);
-            /*if (checkedInText == "Punch-Out") {
-              sendLocationToServer(empId, buildName, "",buildName);
-              scheduleNotification("Al Mufeed - HR", "You are out of office - Punch out");
-            }*/
+            if (checkedInText == "Punch-Out") {
+              if(punchflag == true){
+                prefs.setBool('punchflag', false);
+                sendLocationToServer(empId, buildName, "",buildName);
+                scheduleNotification("Al Mufeed - HR", "You are out of office - Punch out");
+              }
+            }
           }
       }
       });
@@ -524,15 +527,14 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
                 alignment: Alignment.center,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    elevation: 4,
-                    primary: Colors.black,
+                    elevation: 4, backgroundColor: Colors.black,
                     padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                   onPressed: () {
-                    isLoading = true;
+
                     for (int i = 0; i < latitude.length; i++) {
                       var latString1 = double.parse(latitude[i]);
 
@@ -541,19 +543,22 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
                       print('punchin time...' + inString.toString() +  " lon " + newString.toString() + " buidlingname " + buildingName[i]);
                       if(inString == newString){
                         buildName = buildingName[i];
+                        if(checkedInText == "Punch-In"){
+                          isLoading = true;
+                          prefs.setBool('punchflag', true);
+                          sendLocationToServer(empId, buildName, "Y",buildName);
+                          scheduleNotification("Al Mufeed - HR", "You are at office - Punch In");
+                        }
                       }
                     }
 
-                    if(checkedInText == "Punch-In"){
-                        prefs.setBool('punchflag', true);
-                        sendLocationToServer(empId, buildName, "Y",buildName);
-                        scheduleNotification("Al Mufeed - HR", "You are at office - Punch In");
-
-                      }else if(checkedInText == "Punch-Out"){
+                    if (checkedInText == "Punch-Out") {
+                      if(punchflag == true){
                         prefs.setBool('punchflag', false);
                         sendLocationToServer(empId, buildName, "",buildName);
-                        scheduleNotification("Al Mufeed - HR", "You are out of office - Punch Out");
+                        scheduleNotification("Al Mufeed - HR", "You are out of office - Punch out");
                       }
+                    }
                   },
                   child: Text(
                     checkedInText,
