@@ -192,7 +192,6 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
     }
   }
 
-
   Autorization() async {
     var headers = {
       'Content-Type': 'application/x-www-form-urlencoded'
@@ -287,8 +286,7 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
             LatLng(latString, longString), LatLng(
             newLoc.latitude!, newLoc.longitude!));
 
-
-        if (distanceBetween < 200) {
+        if (distanceBetween < 1000) {
           if(punchflag == false){
             if(inString == newString){
               buildName = buildingName[i];
@@ -296,15 +294,18 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
                 prefs.setBool('punchflag', true);
                 sendLocationToServer(empId, buildName, "Y",buildName);
                 scheduleNotification("Al Mufeed - HR", "You are at office - Punch In");
+                break;
               }
             }
           }
         } else {
             if (checkedInText == "Punch-Out") {
               if(punchflag == true){
-                prefs.setBool('punchflag', false);
-                sendLocationToServer(empId, buildName, "",buildName);
-                scheduleNotification("Al Mufeed - HR", "You are out of office - Punch out");
+                if(inString == newString){
+                  prefs.setBool('punchflag', false);
+                  sendLocationToServer(empId, buildName, "",buildName);
+                  scheduleNotification("Al Mufeed - HR", "You are out of office - Punch out");
+                }
               }
             }
           }
@@ -541,13 +542,14 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
                       String inString = latString1.toStringAsFixed(3);
                       String newString = currentLocation.latitude!.toStringAsFixed(3);
                       print('punchin time...' + inString.toString() +  " lon " + newString.toString() + " buidlingname " + buildingName[i]);
-                      if(inString == newString){
+                      if(inString != newString){
                         buildName = buildingName[i];
                         if(checkedInText == "Punch-In"){
                           isLoading = true;
                           prefs.setBool('punchflag', true);
                           sendLocationToServer(empId, buildName, "Y",buildName);
                           scheduleNotification("Al Mufeed - HR", "You are at office - Punch In");
+                          break;
                         }
                       }
                     }
@@ -684,7 +686,7 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(3))),
                 ),
-              ))), Expanded(flex: 1, child: Card(
+              ))), /*Expanded(flex: 1, child: Card(
                 margin: EdgeInsets.all(10),
                 child: ClipPath(
                   child: Container(
@@ -709,7 +711,7 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
                   clipper: ShapeBorderClipper(
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(3))),
-                ),))
+                ),))*/
               ]),
             ])),
           /*  Container(
