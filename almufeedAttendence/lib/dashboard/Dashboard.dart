@@ -286,7 +286,7 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
             LatLng(latString, longString), LatLng(
             newLoc.latitude!, newLoc.longitude!));
 
-        if (distanceBetween < 1000) {
+        if (distanceBetween < 200) {
           if(punchflag == false){
             if(inString == newString){
               buildName = buildingName[i];
@@ -299,7 +299,7 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
             }
           }
         } else {
-            if (checkedInText == "Punch-Out") {
+            /*if (checkedInText == "Punch-Out") {
               if(punchflag == true){
                 if(inString == newString){
                   prefs.setBool('punchflag', false);
@@ -307,7 +307,7 @@ class _DashboardExampleState extends State<Dashboard> with TickerProviderStateMi
                   scheduleNotification("Al Mufeed - HR", "You are out of office - Punch out");
                 }
               }
-            }
+            }*/
           }
       }
       });
